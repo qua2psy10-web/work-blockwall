@@ -120,6 +120,11 @@ input[type="number"]:focus {
   flex-wrap: wrap;
 }
 
+.print-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 button {
   font-size: 1rem;
   padding: 10px 20px;
@@ -372,5 +377,52 @@ footer {
 @media (max-width: 480px) {
   header h1 {
     font-size: 1.2rem;
+  }
+}
+
+@media print {
+  :root {
+    --bg: #ffffff;
+    --card-bg: #ffffff;
+    --text: #000000;
+    --text-muted: #333333;
+    --border: #999999;
+    --ok-bg: #eafaf0;
+    --ok-text: #1a7a3c;
+    --ng-bg: #fdecea;
+    --ng-text: #b8332a;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  header,
+  #calc-form,
+  footer,
+  .print-actions {
+    display: none !important;
+  }
+
+  #results {
+    display: block !important;
+  }
+
+  .card {
+    border: 1px solid #999;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .summary-banner {
+    break-inside: avoid;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table.data-table {
+    min-width: 0;
   }
 }
