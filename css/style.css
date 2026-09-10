@@ -125,6 +125,10 @@ input[type="number"]:focus {
   justify-content: flex-end;
 }
 
+.print-report {
+  display: none;
+}
+
 button {
   font-size: 1rem;
   padding: 10px 20px;
@@ -400,12 +404,72 @@ footer {
   header,
   #calc-form,
   footer,
-  .print-actions {
+  .print-actions,
+  .screen-only {
     display: none !important;
   }
 
   #results {
     display: block !important;
+  }
+
+  .print-report {
+    display: block !important;
+    color: #000;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  }
+
+  .print-title {
+    font-size: 1.3rem;
+    text-align: center;
+    margin: 0 0 4px;
+  }
+
+  .print-subtitle {
+    text-align: center;
+    margin: 0 0 20px;
+  }
+
+  .print-section {
+    margin-bottom: 20px;
+  }
+
+  .print-section > h2 {
+    font-size: 1.05rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 4px;
+    margin: 0 0 12px;
+  }
+
+  .print-subsection {
+    margin: 0 0 14px;
+    break-inside: avoid;
+  }
+
+  .print-subsection h3 {
+    font-size: 0.95rem;
+    margin: 0 0 4px;
+  }
+
+  .print-subsection p {
+    margin: 2px 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  .print-calc-table th,
+  .print-calc-table td {
+    font-size: 0.8rem;
+  }
+
+  .print-footer-note {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 24px;
   }
 
   .card {

@@ -42,6 +42,7 @@ function readInputs() {
     Fs: num("Fs"),
     baseWidthOverride: baseWidthOverrideInput.value === "" ? null : parseFloat(baseWidthOverrideInput.value),
     n2Raw: document.getElementById("n2").value === "" ? null : num("n2"),
+    wallName: document.getElementById("wallName").value,
   };
 }
 
@@ -183,6 +184,7 @@ function render(result) {
       <button type="button" id="print-pdf-btn" class="secondary">🖨 PDF出力（印刷）</button>
     </div>
 
+    <div class="screen-only">
     <div class="summary-banner ${r.overallOK ? "summary-ok" : "summary-ng"}">
       ${r.overallOK ? "総合判定：安全（すべての照査項目でOK）" : "総合判定：要見直し（NG項目があります）"}
     </div>
@@ -275,9 +277,154 @@ function render(result) {
       <h2>示力線図</h2>
       <div class="diagram-wrap">${renderDiagram(r, p)}</div>
     </section>
+    </div>
+
+    <div class="print-report">${buildPrintReport(r, p)}</div>
   `;
 
   baseWidthAutoLabel.textContent = `自動計算値: ${fmt(r.baseWidthComputed)} m`;
+}
+
+// 添付資料と同じ体裁（設計条件→荷重計算→安定計算の番号立て、数値代入式）で
+// 印刷／PDF出力用のレポートHTMLを組み立てる。画面表示はrender()内の.screen-onlyが担う。
+function buildPrintReport(r, p) {
+  const wallName = p.wallName && p.wallName.trim() ? p.wallName.trim() : "（名称未設定）";
+  const sinTheta = Math.sin(deg2rad(r.thetaDeg));
+  const lastRow = r.table[r.table.length - 1];
+
+  const tableRows = r.table
+    .map(
+      (row, i) => `<tr class="${row.ok ? "" : "row-ng"}">
+        <td>${i + 1}</td>
+        <td>${fmt(row.Y, 3)}</td>
+        <td>${fmt(row.Xprime, 3)}</td>
+        <td>${fmt(row.Xh, 3)}</td>
+        <td>${row.ok ? "OK" : "NG"}</td>
+      </tr>`
+    )
+    .join("");
+
+  return `
+    <h1 class="print-title">ブロック積（石積）擁壁安定計算</h1>
+    <p class="print-subtitle">擁壁名称：${wallName}</p>
+
+    <section class="print-section">
+      <h2>１．設計条件</h2>
+
+      <div class="print-subsection">
+        <h3>(1) 裏込め土</h3>
+        <p>単位体積重量　γs = ${fmt(p.gammaS)} kN/m³</p>
+        <p>内部摩擦角　φ = ${fmt(p.phi, 1)}°</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(2) 壁体</h3>
+        <p>壁体厚　t(b) = ${fmt(p.b)} m</p>
+        <p>ブロック積単位重量　γb = ${fmt(p.gammaB)} kN/m³</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(3) 載荷重</h3>
+        <p>活荷重　q = ${fmt(p.q)} kN/m²</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(4) 安定条件</h3>
+        <p>転倒：示力線が断面の中央1/3から出ない</p>
+        <p>許容支持力度　qa = ${fmt(p.qa)} kN/m²</p>
+        <p>滑動に対する必要安全率　Fs = ${fmt(p.Fs, 2)}</p>
+        <p>基礎地盤との摩擦係数　f = ${fmt(p.f, 2)}</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(5) 許容応力度</h3>
+        <p>コンクリートの設計基準強度　σck = ${fmt(p.sigmaCk, 1)} N/mm²（参考表示のみ）</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(6) 形状寸法</h3>
+        <p>ブロック積擁壁高　H = ${fmt(p.H, 3)} m</p>
+        <p>ブロック積前面勾配　1:n1 = 1:${fmt(p.n1, 2)}</p>
+        <p>盛土高　H0 = ${fmt(p.H0, 3)} m</p>
+        <p>盛土傾斜　${p.n2Raw != null ? `1:n2 = 1:${fmt(p.n2Raw, 2)}（β=${fmt(p.beta, 1)}°）` : `水平（β=0°）`}</p>
+      </div>
+
+      <div class="diagram-wrap">${renderModelDiagram({ H: p.H, n1: p.n1, H0: p.H0, beta: p.beta, b: p.b, q: p.q })}</div>
+    </section>
+
+    <section class="print-section print-page-break">
+      <h2>２．荷重計算</h2>
+      <p>上載荷重を盛土高に換算し、盛土荷重として扱い、さらにこの盛土荷重を等分布荷重に換算する。</p>
+
+      <div class="print-subsection">
+        <h3>(1) 上載荷重の盛土換算</h3>
+        <p>H1 = q／γs = ${fmt(p.q)}／${fmt(p.gammaS)} = ${fmt(r.H1)} m</p>
+        <p>(H0+H1)／H = (${fmt(p.H0, 3)}＋${fmt(r.H1)})／${fmt(p.H, 3)} = ${fmt(r.rawRatio)} ${r.ratioCapped ? "＞1のため1として計算" : "≦1"}</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(2) 換算荷重（フローリッヒの地盤応力理論）</h3>
+        <p>X2 = (H0+H1)・tanβ = ${fmt(r.effectiveH0H1)}×tan${fmt(p.beta, 1)}° = ${fmt(r.X2)} m</p>
+        <p>X = X1＋X2／2 = ${fmt(r.X1)}＋${fmt(r.X2)}／2 = ${fmt(r.X)} m</p>
+        <p>台形荷重換算係数　Iw(X／H=${fmt(r.X / p.H, 3)}) = ${fmt(r.Iw, 4)}</p>
+        <p>qw = γ・(H0+H1)・Iw = ${fmt(p.gammaS)}×${fmt(r.effectiveH0H1)}×${fmt(r.Iw, 4)} ≒ ${fmt(r.qw)} kN/m²</p>
+      </div>
+    </section>
+
+    <section class="print-section print-page-break">
+      <h2>３．安定計算</h2>
+
+      <div class="print-subsection">
+        <h3>(1) 転倒に対する検討（示力線法）</h3>
+        <p>ブロック積底部の示力線位置Xhがミドルサードの内側にあることを確認する。</p>
+        <p>θ=${fmt(r.thetaDeg)}°、φ=${fmt(p.phi, 1)}°、δ(=2φ/3)=${fmt(r.delta)}°、i(=β)=${fmt(p.beta, 1)}° をクーロンの主働土圧公式に代入すると、</p>
+        <p>KA ≒ ${fmt(r.KA, 4)}</p>
+        <p>Xh = [KA・γs／(6・γb・b・cosecθ0)]×H² ＋ [(KA・qw・sinθ／sin(θ+i))／(2・γb・b・cosecθ0) ＋ cotθ0／2]×H</p>
+        <p>　= [(${fmt(r.KA, 4)}×${fmt(p.gammaS)})／(6×${fmt(p.gammaB)}×${fmt(p.b)}×${fmt(r.cosecTheta0, 3)})]×${fmt(p.H, 3)}²
+          ＋ [(${fmt(r.KA, 4)}×${fmt(r.qw)}×${fmt(r.sinRatio, 3)})／(2×${fmt(p.gammaB)}×${fmt(p.b)}×${fmt(r.cosecTheta0, 3)}) ＋ ${fmt(r.cotTheta0, 3)}／2]×${fmt(p.H, 3)}</p>
+        <p>　≒ ${fmt(lastRow.Xh)} m</p>
+        <p>X' = H・cotθ0 ＋ b・cosecθ0／6 = ${fmt(p.H, 3)}×${fmt(r.cotTheta0, 3)} ＋ ${fmt(p.b)}×${fmt(r.cosecTheta0, 3)}／6 ≒ ${fmt(lastRow.Xprime)} m</p>
+        <p>X' ${r.overturnOK ? "≧" : "＜"} Xh ・・・ ${r.overturnOK ? "OK　転倒に対して安定である。" : "NG　転倒に対して要検討である。"}</p>
+        <p>従って、安定最大高さ　Hmax = ${fmt(r.Hmax)} m</p>
+      </div>
+
+      <div class="print-subsection print-page-break">
+        <h3>示力線法による合力位置の計算表</h3>
+        <p class="note">照査方法：示力線が断面の中央1/3から出ない</p>
+        <div class="table-wrap">
+          <table class="data-table print-calc-table">
+            <thead><tr><th>NO</th><th>高さ Y (m)</th><th>断面幅 X' (m)</th><th>合力位置 Xh (m)</th><th>安定条件 X'≧Xh</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="print-subsection print-page-break">
+        <h3>示力線図</h3>
+        <div class="diagram-wrap">${renderDiagram(r, p)}</div>
+      </div>
+
+      <div class="print-subsection print-page-break">
+        <h3>(2) 滑動に対する検討</h3>
+        <p>RH／ΣH ≧ Fs</p>
+        <p>RH = ΣV・f = b・γb・H・cosecθ0・f</p>
+        <p>　= ${fmt(p.b)}×${fmt(p.gammaB)}×${fmt(p.H, 3)}×${fmt(r.cosecTheta0, 3)}×${fmt(p.f, 2)} ≒ ${fmt(r.RH, 2)} kN/m</p>
+        <p>ΣH = [1／2・KA・γs・H² ＋ KA・qw・sinθ／sin(θ+i)・H]・sinθ</p>
+        <p>　= [1／2×${fmt(r.KA, 4)}×${fmt(p.gammaS)}×${fmt(p.H, 3)}² ＋ ${fmt(r.KA, 4)}×${fmt(r.qw)}×${fmt(r.sinRatio, 3)}×${fmt(p.H, 3)}]×${fmt(sinTheta, 3)} ≒ ${fmt(r.sigmaH, 2)} kN/m</p>
+        <p>RH／ΣH = ${fmt(r.RH, 2)}／${fmt(r.sigmaH, 2)} ≒ ${fmt(r.slideRatio, 2)} ${r.slideOK ? "＞" : "＜"} ${fmt(p.Fs, 2)}
+          ・・・ ${r.slideOK ? "OK　安全率以上で安全である。" : "NG　必要安全率を満たさない。"}</p>
+      </div>
+
+      <div class="print-subsection">
+        <h3>(3) 支持力に対する検討</h3>
+        <p>qmax ≦ qa</p>
+        <p>qmax = (b・H・γb・cosecθ0)／B = (${fmt(p.b)}×${fmt(p.H, 3)}×${fmt(p.gammaB)}×${fmt(r.cosecTheta0, 3)})／${fmt(r.baseWidth, 3)} ≒ ${fmt(r.qmax, 2)} kN/m²</p>
+        <p>qmax ${r.bearingOK ? "＜" : "≧"} qa=${fmt(p.qa)} ・・・ ${r.bearingOK ? "OK　許容地盤支持力以下で安全である。" : "NG　許容地盤支持力を超える。"}</p>
+      </div>
+    </section>
+
+    <p class="print-footer-note">総合判定：${r.overallOK ? "安全（すべての照査項目でOK）" : "要見直し（NG項目があります）"}</p>
+  `;
 }
 
 function renderDiagram(r, p) {
@@ -333,7 +480,7 @@ form.addEventListener("submit", (e) => {
   try {
     const inputs = readInputs();
     for (const [k, v] of Object.entries(inputs)) {
-      if (k === "baseWidthOverride" || k === "n2Raw") continue;
+      if (k === "baseWidthOverride" || k === "n2Raw" || k === "wallName") continue;
       if (!Number.isFinite(v)) {
         throw new Error("すべての入力欄に数値を入力してください。");
       }
