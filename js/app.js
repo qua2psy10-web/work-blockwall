@@ -37,6 +37,12 @@ function judgeBadge(ok) {
   return `<span class="badge ${ok ? "badge-ok" : "badge-ng"}">${ok ? "OK" : "NG"}</span>`;
 }
 
+function bearingDistributionLabel(type) {
+  if (type === "trapezoidal") return "全幅接地（台形分布）";
+  if (type === "triangular") return "部分接地（三角形分布）";
+  return "合力が底面外（支持不能）";
+}
+
 function render(result) {
   const r = result;
   const p = r.inputs;
@@ -108,6 +114,13 @@ function render(result) {
       <h2>(3) 支持力に対する検討</h2>
       <table class="kv">
         <tr><th>基礎幅 B（自動計算値: ${fmt(r.baseWidthComputed)} m）</th><td>${fmt(r.baseWidth)} m</td></tr>
+        <tr><th>底面鉛直合力 ΣV</th><td>${fmt(r.verticalForce)} kN/m</td></tr>
+        <tr><th>底面中心位置</th><td>${fmt(r.baseCenterX)} m</td></tr>
+        <tr><th>合力作用位置 Xh</th><td>${fmt(r.resultantX)} m</td></tr>
+        <tr><th>偏心距離 e (=Xh−底面中心)</th><td>${fmt(r.eccentricity)} m（|e|≦B/6=${fmt(r.middleThirdLimit)} m）</td></tr>
+        <tr><th>地盤反力分布</th><td>${bearingDistributionLabel(r.bearingDistribution)}</td></tr>
+        <tr><th>有効接地幅</th><td>${fmt(r.contactWidth)} m</td></tr>
+        <tr><th>最小地盤反力 q<sub>min</sub></th><td>${fmt(r.qmin)} kN/m²</td></tr>
         <tr><th>最大地盤反力 q<sub>max</sub></th><td>${fmt(r.qmax)} kN/m²</td></tr>
         <tr><th>許容地盤支持力 q<sub>a</sub></th><td>${fmt(p.qa)} kN/m²</td></tr>
         <tr><th>支持力判定</th><td>${judgeBadge(r.bearingOK)}</td></tr>

@@ -151,10 +151,46 @@ function calcBlockWallStability(p) {
   const slideOK = slideRatio >= Fs;
 
   // (3) 支持力に対する検討
+  // 道路土工―擁壁工指針の直接基礎の考え方に従い、底面合力の偏心を
+  // 考慮して地盤反力度を求める。Xh(H) は壁天端の中心を原点とした
+  // 底面での合力位置、H*cot(theta0) は底面中心の位置である。
   const baseWidthComputed = b * cosecTheta0;
   const baseWidth = baseWidthOverride != null && baseWidthOverride > 0 ? baseWidthOverride : baseWidthComputed;
-  const qmax = (b * H * gammaB * cosecTheta0) / baseWidth;
-  const bearingOK = qmax <= qa;
+  const verticalForce = b * H * gammaB * cosecTheta0;
+  const baseCenterX = H * cotTheta0;
+  const resultantX = Xh(H);
+  const eccentricity = resultantX - baseCenterX;
+  const absEccentricity = Math.abs(eccentricity);
+  const middleThirdLimit = baseWidth / 6;
+
+  let qmax;
+  let qmin;
+  let contactWidth;
+  let bearingDistribution;
+
+  if (absEccentricity <= middleThirdLimit + 1e-12) {
+    // 全幅接地（台形分布）
+    const averagePressure = verticalForce / baseWidth;
+    const eccentricityFactor = (6 * absEccentricity) / baseWidth;
+    qmax = averagePressure * (1 + eccentricityFactor);
+    qmin = averagePressure * (1 - eccentricityFactor);
+    contactWidth = baseWidth;
+    bearingDistribution = "trapezoidal";
+  } else if (absEccentricity < baseWidth / 2) {
+    // 引張反力を許容せず、圧縮側のみの三角形分布とする。
+    contactWidth = 3 * (baseWidth / 2 - absEccentricity);
+    qmax = (2 * verticalForce) / contactWidth;
+    qmin = 0;
+    bearingDistribution = "triangular";
+  } else {
+    // 合力が底面外にあり、静的な圧縮反力では釣り合わない。
+    contactWidth = 0;
+    qmax = Infinity;
+    qmin = 0;
+    bearingDistribution = "outside";
+  }
+
+  const bearingOK = Number.isFinite(qmax) && qmax <= qa;
 
   return {
     inputs: p,
@@ -185,7 +221,16 @@ function calcBlockWallStability(p) {
     slideOK,
     baseWidthComputed,
     baseWidth,
+    verticalForce,
+    baseCenterX,
+    resultantX,
+    eccentricity,
+    absEccentricity,
+    middleThirdLimit,
+    contactWidth,
+    qmin,
     qmax,
+    bearingDistribution,
     bearingOK,
     sigmaCk,
     qa,
