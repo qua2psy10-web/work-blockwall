@@ -144,6 +144,16 @@ button.secondary {
   margin-top: -6px;
 }
 
+.warning-text {
+  font-size: 0.8rem;
+  color: var(--ng-text);
+  background: var(--ng-bg);
+  border: 1px solid var(--ng-text);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 4px 0 0;
+}
+
 .error-box {
   background: var(--ng-bg);
   color: var(--ng-text);

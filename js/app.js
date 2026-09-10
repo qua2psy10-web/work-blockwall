@@ -5,6 +5,7 @@ const baseWidthOverrideInput = document.getElementById("baseWidthOverride");
 const baseWidthAutoLabel = document.getElementById("baseWidthAutoValue");
 const modelDiagramEl = document.getElementById("model-diagram");
 const betaFromN2Label = document.getElementById("betaFromN2");
+const slopeWarningEl = document.getElementById("slope-warning");
 
 function num(id) {
   const v = document.getElementById(id).value;
@@ -342,6 +343,10 @@ function updateModelDiagram() {
     b: num("b"),
     q: num("q"),
   });
+
+  const H0 = num("H0");
+  const n2 = num("n2");
+  slopeWarningEl.hidden = !(Number.isFinite(H0) && H0 <= 0 && Number.isFinite(n2) && n2 > 0);
 }
 
 ["H", "n1", "H0", "n2", "b", "q"].forEach((id) => {
