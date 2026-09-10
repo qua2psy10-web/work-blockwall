@@ -50,6 +50,12 @@ function judgeBadge(ok) {
   return `<span class="badge ${ok ? "badge-ok" : "badge-ng"}">${ok ? "OK" : "NG"}</span>`;
 }
 
+function bearingDistributionLabel(type) {
+  if (type === "trapezoidal") return "全幅接地（台形分布）";
+  if (type === "triangular") return "部分接地（三角形分布）";
+  return "合力が底面外（支持不能）";
+}
+
 // 入力欄の値から擁壁断面の概略図(SVG)を組み立てる。
 // 壁体は厚さb(法線方向)・勾配1:n1の平行四辺形（クーロン式のθ0=atan(1/n1)で傾く1枚の板）とみなす。
 function renderModelDiagram(p) {
@@ -260,6 +266,13 @@ function render(result) {
       <h2>(3) 支持力に対する検討</h2>
       <table class="kv">
         <tr><th>基礎幅 B（自動計算値: ${fmt(r.baseWidthComputed)} m）</th><td>${fmt(r.baseWidth)} m</td></tr>
+        <tr><th>底面鉛直合力 ΣV</th><td>${fmt(r.verticalForce)} kN/m</td></tr>
+        <tr><th>底面中心位置</th><td>${fmt(r.baseCenterX)} m</td></tr>
+        <tr><th>合力作用位置 Xh</th><td>${fmt(r.resultantX)} m</td></tr>
+        <tr><th>偏心距離 e</th><td>${fmt(r.eccentricity)} m（|e|≦B/6=${fmt(r.middleThirdLimit)} m）</td></tr>
+        <tr><th>地盤反力分布</th><td>${bearingDistributionLabel(r.bearingDistribution)}</td></tr>
+        <tr><th>有効接地幅</th><td>${fmt(r.contactWidth)} m</td></tr>
+        <tr><th>最小地盤反力 q<sub>min</sub></th><td>${fmt(r.qmin)} kN/m²</td></tr>
         <tr><th>最大地盤反力 q<sub>max</sub></th><td>${fmt(r.qmax)} kN/m²</td></tr>
         <tr><th>許容地盤支持力 q<sub>a</sub></th><td>${fmt(p.qa)} kN/m²</td></tr>
         <tr><th>支持力判定</th><td>${judgeBadge(r.bearingOK)}</td></tr>
@@ -418,7 +431,10 @@ function buildPrintReport(r, p) {
       <div class="print-subsection">
         <h3>(3) 支持力に対する検討</h3>
         <p>qmax ≦ qa</p>
-        <p>qmax = (b・H・γb・cosecθ0)／B = (${fmt(p.b)}×${fmt(p.H, 3)}×${fmt(p.gammaB)}×${fmt(r.cosecTheta0, 3)})／${fmt(r.baseWidth, 3)} ≒ ${fmt(r.qmax, 2)} kN/m²</p>
+        <p>ΣV = b・H・γb・cosecθ0 = ${fmt(r.verticalForce, 2)} kN/m</p>
+        <p>e = Xh − H・cotθ0 = ${fmt(r.resultantX, 3)} − ${fmt(r.baseCenterX, 3)} = ${fmt(r.eccentricity, 3)} m</p>
+        <p>地盤反力分布：${bearingDistributionLabel(r.bearingDistribution)}、有効接地幅=${fmt(r.contactWidth, 3)} m</p>
+        <p>qmin = ${fmt(r.qmin, 2)} kN/m²、qmax = ${fmt(r.qmax, 2)} kN/m²</p>
         <p>qmax ${r.bearingOK ? "＜" : "≧"} qa=${fmt(p.qa)} ・・・ ${r.bearingOK ? "OK　許容地盤支持力以下で安全である。" : "NG　許容地盤支持力を超える。"}</p>
       </div>
     </section>

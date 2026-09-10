@@ -153,8 +153,38 @@ function calcBlockWallStability(p) {
   // (3) 支持力に対する検討
   const baseWidthComputed = b * cosecTheta0;
   const baseWidth = baseWidthOverride != null && baseWidthOverride > 0 ? baseWidthOverride : baseWidthComputed;
-  const qmax = (b * H * gammaB * cosecTheta0) / baseWidth;
-  const bearingOK = qmax <= qa;
+  const verticalForce = b * H * gammaB * cosecTheta0;
+  const baseCenterX = H * cotTheta0;
+  const resultantX = Xh(H);
+  const eccentricity = resultantX - baseCenterX;
+  const absEccentricity = Math.abs(eccentricity);
+  const middleThirdLimit = baseWidth / 6;
+
+  let qmax;
+  let qmin;
+  let contactWidth;
+  let bearingDistribution;
+
+  if (absEccentricity <= middleThirdLimit + 1e-12) {
+    const averagePressure = verticalForce / baseWidth;
+    const eccentricityFactor = (6 * absEccentricity) / baseWidth;
+    qmax = averagePressure * (1 + eccentricityFactor);
+    qmin = averagePressure * (1 - eccentricityFactor);
+    contactWidth = baseWidth;
+    bearingDistribution = "trapezoidal";
+  } else if (absEccentricity < baseWidth / 2) {
+    contactWidth = 3 * (baseWidth / 2 - absEccentricity);
+    qmax = (2 * verticalForce) / contactWidth;
+    qmin = 0;
+    bearingDistribution = "triangular";
+  } else {
+    contactWidth = 0;
+    qmax = Infinity;
+    qmin = 0;
+    bearingDistribution = "outside";
+  }
+
+  const bearingOK = Number.isFinite(qmax) && qmax <= qa;
 
   return {
     inputs: p,
@@ -185,7 +215,16 @@ function calcBlockWallStability(p) {
     slideOK,
     baseWidthComputed,
     baseWidth,
+    verticalForce,
+    baseCenterX,
+    resultantX,
+    eccentricity,
+    absEccentricity,
+    middleThirdLimit,
+    contactWidth,
+    qmin,
     qmax,
+    bearingDistribution,
     bearingOK,
     sigmaCk,
     qa,
