@@ -41,6 +41,7 @@ function readInputs() {
     f: num("f"),
     Fs: num("Fs"),
     baseWidthOverride: baseWidthOverrideInput.value === "" ? null : parseFloat(baseWidthOverrideInput.value),
+    n2Raw: document.getElementById("n2").value === "" ? null : num("n2"),
   };
 }
 
@@ -178,9 +179,32 @@ function render(result) {
     .join("");
 
   resultsEl.innerHTML = `
+    <div class="print-actions">
+      <button type="button" id="print-pdf-btn" class="secondary">🖨 PDF出力（印刷）</button>
+    </div>
+
     <div class="summary-banner ${r.overallOK ? "summary-ok" : "summary-ng"}">
       ${r.overallOK ? "総合判定：安全（すべての照査項目でOK）" : "総合判定：要見直し（NG項目があります）"}
     </div>
+
+    <section class="card">
+      <h2>入力した設計条件</h2>
+      <table class="kv">
+        <tr><th>裏込め土 単位体積重量 γs</th><td>${fmt(p.gammaS)} kN/m³</td></tr>
+        <tr><th>裏込め土 内部摩擦角 φ</th><td>${fmt(p.phi, 1)} °</td></tr>
+        <tr><th>壁体厚 t (b)</th><td>${fmt(p.b)} m</td></tr>
+        <tr><th>ブロック積単位重量 γb</th><td>${fmt(p.gammaB)} kN/m³</td></tr>
+        <tr><th>活荷重 q</th><td>${fmt(p.q)} kN/m²</td></tr>
+        <tr><th>擁壁高さ H</th><td>${fmt(p.H, 3)} m</td></tr>
+        <tr><th>前面勾配</th><td>1:${fmt(p.n1, 2)}</td></tr>
+        <tr><th>盛土高 H0</th><td>${fmt(p.H0, 2)} m</td></tr>
+        <tr><th>盛土傾斜</th><td>${p.n2Raw != null ? `1:${fmt(p.n2Raw, 2)}` : "水平（0）"}</td></tr>
+        <tr><th>許容支持力度 qa</th><td>${fmt(p.qa)} kN/m²</td></tr>
+        <tr><th>基礎地盤との摩擦係数 f</th><td>${fmt(p.f, 2)}</td></tr>
+        <tr><th>滑動に対する必要安全率 Fs</th><td>${fmt(p.Fs, 2)}</td></tr>
+      </table>
+      <div class="diagram-wrap">${renderModelDiagram({ H: p.H, n1: p.n1, H0: p.H0, beta: p.beta, b: p.b, q: p.q })}</div>
+    </section>
 
     <section class="card">
       <h2>形状・角度</h2>
@@ -309,7 +333,7 @@ form.addEventListener("submit", (e) => {
   try {
     const inputs = readInputs();
     for (const [k, v] of Object.entries(inputs)) {
-      if (k === "baseWidthOverride") continue;
+      if (k === "baseWidthOverride" || k === "n2Raw") continue;
       if (!Number.isFinite(v)) {
         throw new Error("すべての入力欄に数値を入力してください。");
       }
@@ -321,6 +345,12 @@ form.addEventListener("submit", (e) => {
     errorEl.textContent = err.message || String(err);
     errorEl.hidden = false;
     resultsEl.hidden = true;
+  }
+});
+
+resultsEl.addEventListener("click", (e) => {
+  if (e.target.closest("#print-pdf-btn")) {
+    window.print();
   }
 });
 
