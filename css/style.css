@@ -288,6 +288,69 @@ tr.row-ng {
   stroke-width: 2;
 }
 
+.model-svg {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+}
+
+.wall-fill {
+  fill: #9fb4c7;
+  opacity: 0.9;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wall-fill {
+    fill: #4b6478;
+  }
+}
+
+.wall-outline {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.soil-fill {
+  fill: #e3d3ab;
+  opacity: 0.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .soil-fill {
+    fill: #5a4c30;
+  }
+}
+
+.soil-hatch-line {
+  stroke: #8a7343;
+  stroke-width: 1;
+}
+
+.ground-line {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+
+.load-arrow {
+  stroke: #c0392b;
+  stroke-width: 1.5;
+}
+
+.load-arrow-head {
+  fill: #c0392b;
+}
+
+.dim-line {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.diagram-text {
+  fill: var(--text);
+  font-size: 11px;
+}
+
 footer {
   max-width: 960px;
   margin: 24px auto 0;
