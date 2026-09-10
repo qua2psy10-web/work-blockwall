@@ -4,6 +4,7 @@ const errorEl = document.getElementById("error-box");
 const baseWidthOverrideInput = document.getElementById("baseWidthOverride");
 const baseWidthAutoLabel = document.getElementById("baseWidthAutoValue");
 const modelDiagramEl = document.getElementById("model-diagram");
+const betaFromN2Label = document.getElementById("betaFromN2");
 
 function num(id) {
   const v = document.getElementById(id).value;
@@ -15,12 +16,20 @@ function fmt(v, digits = 3) {
   return v.toLocaleString("ja-JP", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+// 盛土傾斜を前面勾配と同じ「1:n2」形式で受け取り、角度βに変換する。
+// 空欄・0以下は水平(β=0°)として扱う。
+function n2ToBetaDeg() {
+  const n2 = num("n2");
+  if (!Number.isFinite(n2) || n2 <= 0) return 0;
+  return rad2deg(Math.atan(1 / n2));
+}
+
 function readInputs() {
   return {
     H: num("H"),
     n1: num("n1"),
     H0: num("H0"),
-    beta: num("beta"),
+    beta: n2ToBetaDeg(),
     gammaS: num("gammaS"),
     phi: num("phi"),
     b: num("b"),
@@ -178,6 +187,7 @@ function render(result) {
         <tr><th>壁背面角 θ<sub>0</sub></th><td>${fmt(r.theta0Deg)} °</td></tr>
         <tr><th>クーロン式用角 θ (=180-θ<sub>0</sub>)</th><td>${fmt(r.thetaDeg)} °</td></tr>
         <tr><th>壁面摩擦角 δ (=2φ/3)</th><td>${fmt(r.delta)} °</td></tr>
+        <tr><th>盛土傾斜角 β (=地表面角 i)</th><td>${fmt(p.beta)} °</td></tr>
         <tr><th>主働土圧係数 K<sub>A</sub></th><td>${fmt(r.KA, 4)}</td></tr>
       </table>
     </section>
@@ -322,17 +332,19 @@ document.getElementById("reset-defaults").addEventListener("click", () => {
 });
 
 function updateModelDiagram() {
+  const beta = n2ToBetaDeg();
+  betaFromN2Label.textContent = `β = ${fmt(beta, 1)} °`;
   modelDiagramEl.innerHTML = renderModelDiagram({
     H: num("H"),
     n1: num("n1"),
     H0: num("H0"),
-    beta: num("beta"),
+    beta,
     b: num("b"),
     q: num("q"),
   });
 }
 
-["H", "n1", "H0", "beta", "b", "q"].forEach((id) => {
+["H", "n1", "H0", "n2", "b", "q"].forEach((id) => {
   document.getElementById(id).addEventListener("input", updateModelDiagram);
 });
 
